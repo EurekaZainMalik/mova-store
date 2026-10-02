@@ -65,7 +65,12 @@ pub fn is_token_allowed(env: &Env, token: &Address) -> bool {
 pub fn set_token_allowed(env: &Env, token: &Address, allowed: bool) {
     let key = DataKey::TokenAllowed(token.clone());
     if allowed {
+        // Whitelists are long-lived deployment state: `add_token` is usually
+        // called once, so the entry must be extended here or it will receive the
+        // default persistent TTL and eventually be archived, silently disabling
+        // every payment (see #493).
         env.storage().persistent().set(&key, &true);
+        extend_ttl(env, &key);
     } else {
         env.storage().persistent().remove(&key);
     }
